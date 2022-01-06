@@ -8,6 +8,24 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
+type InitAlgorithm int
+
+const (
+	KmeansPlusPlus InitAlgorithm = iota
+	Random
+)
+
+func InitAlgorithmFrom(str string) (InitAlgorithm, error) {
+	switch str {
+	case "kmeans++":
+		return KmeansPlusPlus, nil
+	case "random":
+		return Random, nil
+	default:
+		return 0, fmt.Errorf("invalid init algorithm: %s", str)
+	}
+}
+
 func calcRandomInitialCentroids(X *mat.Dense, nClusters uint) *mat.Dense {
 	_, nFeatures := X.Dims()
 	centroids := mat.NewDense(int(nClusters), nFeatures, nil)
@@ -50,8 +68,15 @@ func calcKmeansPlusPlusInitialCentroids(X *mat.Dense, nClusters uint) *mat.Dense
 	return centroids
 }
 
-func calcInitialCentroids(X *mat.Dense, nClusters uint) *mat.Dense {
-	return calcKmeansPlusPlusInitialCentroids(X, nClusters)
+func calcInitialCentroids(X *mat.Dense, nClusters uint, initAlgorithm InitAlgorithm) *mat.Dense {
+	switch initAlgorithm {
+	case KmeansPlusPlus:
+		return calcKmeansPlusPlusInitialCentroids(X, nClusters)
+	case Random:
+		return calcRandomInitialCentroids(X, nClusters)
+	default:
+		panic("invalid init algorithm")
+	}
 }
 
 func assignCluster(X *mat.Dense, centroids *mat.Dense, classes []uint, indices []uint, calcDistance func(X, Y mat.Vector) float64) {

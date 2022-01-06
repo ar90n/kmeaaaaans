@@ -11,10 +11,11 @@ type vanilaKmeans struct {
 	tolerance     float64
 	maxIterations uint
 	chunkSize     uint
+	initAlgorithm InitAlgorithm
 }
 
 func (k *vanilaKmeans) Fit(X *mat.Dense) TrainedKmeans {
-	nextCentroids := calcInitialCentroids(X, k.nClusters)
+	nextCentroids := calcInitialCentroids(X, k.nClusters, k.initAlgorithm)
 	centroids := mat.NewDense(nextCentroids.RawMatrix().Rows, nextCentroids.RawMatrix().Cols, nil)
 
 	chunks := makeChunks(makeSequence(uint(X.RawMatrix().Rows)), k.chunkSize)

@@ -20,11 +20,12 @@ func NewMiniBatchKmeans(nClusters uint, batchSize uint) Kmeans {
 	}
 }
 
-func NewVanilaKmeans(nClusters uint, tolerance float64, maxIterations uint, chunkSize uint) Kmeans {
+func NewVanilaKmeans(nClusters uint, tolerance float64, maxIterations uint, chunkSize uint, initAlgorithm InitAlgorithm) Kmeans {
 	return &vanilaKmeans{
 		nClusters:     nClusters,
 		tolerance:     tolerance,
 		maxIterations: maxIterations,
 		chunkSize:     chunkSize,
+		initAlgorithm: initAlgorithm,
 	}
 }

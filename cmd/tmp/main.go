@@ -35,7 +35,12 @@ func trainAction(c *cli.Context) error {
 	tolerance := c.Float64("tolerance")
 	maxIter := c.Uint("max-iter")
 	batchSize := c.Uint("batch-size")
-	kmeans := kmeaaaaans.NewVanilaKmeans(nClusters, tolerance, maxIter, batchSize)
+	initAlgorithm, err := kmeaaaaans.InitAlgorithmFrom(c.String("init-algorithm"))
+	if err != nil {
+		return err
+	}
+
+	kmeans := kmeaaaaans.NewVanilaKmeans(nClusters, tolerance, maxIter, batchSize, initAlgorithm)
 
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Scan()
@@ -110,6 +115,12 @@ func main() {
 						Usage:       "batch size",
 						Value:       1024,
 						DefaultText: "1024",
+					},
+					&cli.StringFlag{
+						Name:        "init-algorithm",
+						Usage:       "initialization algorithm",
+						Value:       "kmeans++",
+						DefaultText: "kmeans++",
 					},
 				},
 				Action: trainAction,

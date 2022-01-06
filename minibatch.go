@@ -12,7 +12,7 @@ type miniBatchKmeans struct {
 }
 
 func (k *miniBatchKmeans) Fit(X *mat.Dense) TrainedKmeans {
-	centroids := calcInitialCentroids(X, k.nClusters)
+	centroids := calcInitialCentroids(X, k.nClusters, KmeansPlusPlus)
 	return &trainedKmeans{
 		centroids: centroids,
 	}

@@ -8,7 +8,7 @@ import (
 )
 
 func TestClustering(t *testing.T) {
-	kmeans := NewVanilaKmeans(2, 1e-4, 10, 1024)
+	kmeans := NewVanilaKmeans(2, 1e-4, 10, 1024, KmeansPlusPlus)
 
 	X := mat.NewDense(8, 2, []float64{1, 1, 1, 0, 0, 1, 0, 0, 5, 5, 5, 6, 6, 5, 6, 6})
 	trained := kmeans.Fit(X)
