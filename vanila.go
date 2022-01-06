@@ -30,7 +30,7 @@ func (k *vanilaKmeans) Fit(X *mat.Dense) TrainedKmeans {
 			go func(chunk []uint) {
 				defer wg.Done()
 				assignCluster(X, centroids, classes, chunk, calcL2Distance)
-				accumulateSamples(X, nextCentroids, nSamplesInCluster, classes, chunk)
+				accumulateSamplesInCluster(X, nextCentroids, nSamplesInCluster, classes, chunk)
 			}(chunk)
 		}
 		wg.Wait()
