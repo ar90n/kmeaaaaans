@@ -29,3 +29,9 @@ func NewVanilaKmeans(nClusters uint, tolerance float64, maxIterations uint, chun
 		initAlgorithm: initAlgorithm,
 	}
 }
+
+func NewTrainedKmeans(centroids *mat.Dense) TrainedKmeans {
+	return &trainedKmeans{
+		centroids: centroids,
+	}
+}

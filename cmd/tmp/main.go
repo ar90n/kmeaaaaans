@@ -4,6 +4,7 @@ import (
 	"ar90n/kmeaaaaans"
 	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"strconv"
@@ -18,9 +19,9 @@ func matPrint(X mat.Matrix) {
 	fmt.Printf("%v\n", fa)
 }
 
-func parseCommaSeparateFloat64(str string) ([]float64, error) {
+func parseFromSeparateFloat64(str string, del string) ([]float64, error) {
 	var floats []float64
-	for _, s := range strings.Split(str, ",") {
+	for _, s := range strings.Split(str, del) {
 		f, err := strconv.ParseFloat(s, 64)
 		if err != nil {
 			return nil, err
@@ -30,11 +31,70 @@ func parseCommaSeparateFloat64(str string) ([]float64, error) {
 	return floats, nil
 }
 
+func dumpAsSeparatedFloat64(w io.Writer, X *mat.Dense, delimiter string) error {
+	nSamples, featDim := X.Dims()
+
+	for i := 0; i < nSamples; i++ {
+		for j := 0; j < featDim; j++ {
+			if j != 0 {
+				_, err := fmt.Fprint(w, delimiter)
+				if err != nil {
+					return err
+				}
+			}
+			_, err := fmt.Fprint(w, X.At(i, j))
+			if err != nil {
+				return err
+			}
+		}
+		_, err := fmt.Fprint(w, "\n")
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func readFeatures(r io.Reader, delimiter string) (*mat.Dense, error) {
+	scanner := bufio.NewScanner(r)
+	scanner.Scan()
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	featBuffer, err := parseFromSeparateFloat64(scanner.Text(), delimiter)
+	if err != nil {
+		return nil, err
+	}
+	featDim := len(featBuffer)
+
+	for scanner.Scan() {
+		if err := scanner.Err(); err != nil {
+			return nil, err
+		}
+
+		buf, err := parseFromSeparateFloat64(scanner.Text(), delimiter)
+		if err != nil {
+			return nil, err
+		}
+		if len(buf) != featDim {
+			return nil, fmt.Errorf("feature dimension mismatch: %d != %d", len(buf), featDim)
+		}
+		featBuffer = append(featBuffer, buf...)
+	}
+
+	nSamples := len(featBuffer) / featDim
+	X := mat.NewDense(nSamples, featDim, featBuffer)
+	return X, nil
+}
+
 func trainAction(c *cli.Context) error {
 	nClusters := c.Uint("clusters")
 	tolerance := c.Float64("tolerance")
 	maxIter := c.Uint("max-iter")
 	batchSize := c.Uint("batch-size")
+	delimiter := c.String("delimiter")
 	initAlgorithm, err := kmeaaaaans.InitAlgorithmFrom(c.String("init-algorithm"))
 	if err != nil {
 		return err
@@ -42,55 +102,62 @@ func trainAction(c *cli.Context) error {
 
 	kmeans := kmeaaaaans.NewVanilaKmeans(nClusters, tolerance, maxIter, batchSize, initAlgorithm)
 
-	scanner := bufio.NewScanner(os.Stdin)
-	scanner.Scan()
-	if err := scanner.Err(); err != nil {
-		return err
-	}
-
-	featBuffer, err := parseCommaSeparateFloat64(scanner.Text())
+	X, err := readFeatures(os.Stdin, delimiter)
 	if err != nil {
 		return err
 	}
-	featDim := len(featBuffer)
 
-	for scanner.Scan() {
-		if err := scanner.Err(); err != nil {
-			return err
-		}
-
-		buf, err := parseCommaSeparateFloat64(scanner.Text())
-		if err != nil {
-			return err
-		}
-		if len(buf) != featDim {
-			return fmt.Errorf("feature dimension mismatch: %d != %d", len(buf), featDim)
-		}
-		featBuffer = append(featBuffer, buf...)
-	}
-
-	nSamples := len(featBuffer) / featDim
-	X := mat.NewDense(nSamples, featDim, featBuffer)
 	trained := kmeans.Fit(X)
 	centroids := trained.Centroids()
-	matPrint(centroids)
+	if err := dumpAsSeparatedFloat64(os.Stdout, centroids, delimiter); err != nil {
+		return err
+	}
 
 	return nil
 }
 
 func predictAction(c *cli.Context) error {
-	fmt.Println("added task: ", c.Args().First())
+	if c.NArg() != 1 {
+		return fmt.Errorf("expected 1 argument, got %d", c.NArg())
+	}
+
+	delimiter := c.String("delimiter")
+	centroidsFilePath := c.Args().First()
+
+	fp, err := os.Open(centroidsFilePath)
+	if err != nil {
+		return err
+	}
+	defer fp.Close()
+
+	centroids, err := readFeatures(fp, delimiter)
+	if err != nil {
+		return err
+	}
+
+	kmeans := kmeaaaaans.NewTrainedKmeans(centroids)
+	X, err := readFeatures(os.Stdin, delimiter)
+	if err != nil {
+		return err
+	}
+	predicts := kmeans.Predict(X)
+	for _, p := range predicts {
+		fmt.Println(p)
+	}
+
 	return nil
 }
 
 func main() {
 	app := &cli.App{
-		Name:  "kmeaaaaans",
-		Usage: "example program to test kmeaaaaans",
+		Name:     "kmeaaaaans",
+		HelpName: "kmeaaaaans",
+		Usage:    "example program to test kmeaaaaans",
 		Commands: []*cli.Command{
 			{
-				Name:  "train",
-				Usage: "train kmeans",
+				Name:      "train",
+				Usage:     "train kmeans",
+				UsageText: "kmeaaaaans train [command options]",
 				Flags: []cli.Flag{
 					&cli.UintFlag{
 						Name:        "clusters",
@@ -122,13 +189,28 @@ func main() {
 						Value:       "kmeans++",
 						DefaultText: "kmeans++",
 					},
+					&cli.StringFlag{
+						Name:        "delimiter",
+						Usage:       "delimiter",
+						Value:       ",",
+						DefaultText: ",",
+					},
 				},
 				Action: trainAction,
 			},
 			{
-				Name:   "predict",
-				Usage:  "predict kmeans",
-				Action: predictAction,
+				Name:      "predict",
+				Usage:     "predict classes",
+				Action:    predictAction,
+				ArgsUsage: "<path to centroids-file>",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:        "delimiter",
+						Usage:       "delimiter",
+						Value:       ",",
+						DefaultText: ",",
+					},
+				},
 			},
 		},
 	}
