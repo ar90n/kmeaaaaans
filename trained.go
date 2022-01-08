@@ -8,6 +8,8 @@ type trainedKmeans struct {
 	centroids *mat.Dense
 }
 
+var _ TrainedKmeans = (*trainedKmeans)(nil)
+
 func (k *trainedKmeans) Predict(X *mat.Dense) []uint {
 	indices := makeSequence(uint(X.RawMatrix().Rows))
 	classes := make([]uint, X.RawMatrix().Rows)

@@ -14,6 +14,8 @@ type vanilaKmeans struct {
 	initAlgorithm InitAlgorithm
 }
 
+var _ Kmeans = (*vanilaKmeans)(nil)
+
 func (k *vanilaKmeans) Fit(X *mat.Dense) TrainedKmeans {
 	nextCentroids := calcInitialCentroids(X, k.nClusters, k.initAlgorithm)
 	centroids := mat.NewDense(nextCentroids.RawMatrix().Rows, nextCentroids.RawMatrix().Cols, nil)
