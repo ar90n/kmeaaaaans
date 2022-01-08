@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"testing"
 
 	"github.com/urfave/cli/v2"
 	"gonum.org/v1/gonum/mat"
@@ -148,6 +149,34 @@ func predictAction(c *cli.Context) error {
 	return nil
 }
 
+func benchmarkAction(c *cli.Context) error {
+	nClusters := c.Uint("clusters")
+	tolerance := c.Float64("tolerance")
+	maxIter := c.Uint("max-iter")
+	batchSize := c.Uint("batch-size")
+	delimiter := c.String("delimiter")
+	initAlgorithm, err := kmeaaaaans.InitAlgorithmFrom(c.String("init-algorithm"))
+	if err != nil {
+		return err
+	}
+
+	kmeans := kmeaaaaans.NewVanilaKmeans(nClusters, tolerance, maxIter, batchSize, initAlgorithm)
+	X, err := readFeatures(os.Stdin, delimiter)
+	if err != nil {
+		return err
+	}
+
+	result := testing.Benchmark(func(b *testing.B) {
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			kmeans.Fit(X)
+		}
+	})
+	fmt.Println(result)
+
+	return nil
+}
+
 func main() {
 	app := &cli.App{
 		Name:     "kmeaaaaans",
@@ -158,6 +187,7 @@ func main() {
 				Name:      "train",
 				Usage:     "train kmeans",
 				UsageText: "kmeaaaaans train [command options]",
+				Action:    trainAction,
 				Flags: []cli.Flag{
 					&cli.UintFlag{
 						Name:        "clusters",
@@ -196,7 +226,6 @@ func main() {
 						DefaultText: ",",
 					},
 				},
-				Action: trainAction,
 			},
 			{
 				Name:      "predict",
@@ -204,6 +233,50 @@ func main() {
 				Action:    predictAction,
 				ArgsUsage: "<path to centroids-file>",
 				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:        "delimiter",
+						Usage:       "delimiter",
+						Value:       ",",
+						DefaultText: ",",
+					},
+				},
+			},
+			{
+				Name:      "benchmark",
+				Usage:     "benchmark",
+				UsageText: "kmeaaaaans benchmark [command options]",
+				Action:    benchmarkAction,
+				Flags: []cli.Flag{
+					&cli.UintFlag{
+						Name:        "clusters",
+						Usage:       "number of clusters",
+						Value:       8,
+						DefaultText: "8",
+					},
+					&cli.UintFlag{
+						Name:        "max-iter",
+						Usage:       "max number of iterations",
+						Value:       300,
+						DefaultText: "300",
+					},
+					&cli.Float64Flag{
+						Name:        "tolerance",
+						Usage:       "tolerance",
+						Value:       1e-4,
+						DefaultText: "1e-4",
+					},
+					&cli.UintFlag{
+						Name:        "batch-size",
+						Usage:       "batch size",
+						Value:       1024,
+						DefaultText: "1024",
+					},
+					&cli.StringFlag{
+						Name:        "init-algorithm",
+						Usage:       "initialization algorithm",
+						Value:       "kmeans++",
+						DefaultText: "kmeans++",
+					},
 					&cli.StringFlag{
 						Name:        "delimiter",
 						Usage:       "delimiter",
