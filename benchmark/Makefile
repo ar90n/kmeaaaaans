@@ -272,3 +272,7 @@ benchmark.json: mnist.json s1.json s2.json s3.json s4.json
 report.md: benchmark.json
 	cd $(benchmark_dir) &&\
 	poetry run python make_report.py $^ > $@
+
+.PHONY: clean
+clean:
+	rm -f *.json *.csv *.txt *.md s-originals.zip kmeaaaaans
