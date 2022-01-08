@@ -20,8 +20,9 @@ def benchmark(kmeans: KMeans, data: np.array, n: int):
     duration = int(1e9 * (time() - t0) // n)
     return json.dumps({"duration_ns": duration})
 
+
 @contextmanager
-def csv_io_context(input_path: Path, output_path: Path):
+def csv_io_context(input_path: Path, output_path: Path, delimiter: str):
     def _task():
         cluster_centers, benchmark_result = yield
         with output_path.open("w") as fp:
@@ -29,7 +30,9 @@ def csv_io_context(input_path: Path, output_path: Path):
         print(benchmark_result)
 
     with input_path.open("r") as fp:
-        data = np.array([list(map(float, row)) for row in csv.reader(fp)])
+        data = np.array(
+            [list(map(float, row)) for row in csv.reader(fp, delimiter=delimiter)]
+        )
 
     generator = _task()
     next(generator)
@@ -38,12 +41,20 @@ def csv_io_context(input_path: Path, output_path: Path):
     except StopIteration:
         pass
 
+
 class Algorithm(str, Enum):
     vanila = "vanila"
     minibatch = "minibatch"
 
 
-def main(n_clusters: int, input_path: Path, output_path: Path, algorithm: Algorithm = Algorithm.vanila, batch_size: Optional[int] = None):
+def main(
+    n_clusters: int,
+    input_path: Path,
+    output_path: Path,
+    algorithm: Algorithm = Algorithm.vanila,
+    delimiter: str = ",",
+    batch_size: Optional[int] = None,
+):
     KmeansClass = {
         Algorithm.vanila: KMeans,
         Algorithm.minibatch: MiniBatchKMeans,
@@ -52,7 +63,7 @@ def main(n_clusters: int, input_path: Path, output_path: Path, algorithm: Algori
     args = {}
     if batch_size is not None:
         args["batch_size"] = batch_size
-    with csv_io_context(input_path, output_path) as (data, c):
+    with csv_io_context(input_path, output_path, delimiter) as (data, c):
         kmeans = KmeansClass(n_clusters=n_clusters, **args)
         kmeans.fit(data)
         benchmark_result = benchmark(kmeans, data, 8)
