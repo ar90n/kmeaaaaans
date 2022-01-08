@@ -11,7 +11,7 @@ import (
 type InitAlgorithm int
 
 const (
-	KmeansPlusPlus InitAlgorithm = iota
+	KmeansPlusPlus InitAlgorithm = iota + 1
 	Random
 )
 
