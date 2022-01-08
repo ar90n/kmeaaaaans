@@ -17,9 +17,9 @@ import (
 )
 
 type BenchmarkResult struct {
-	DurationNS  uint   `json:"duration_ns"`
-	MemoryBytes uint   `json:"memory_bytes"`
-	Allocs      uint64 `json:"allocs"`
+	DurationNS  uint `json:"duration_ns"`
+	MemoryBytes uint `json:"memory_bytes"`
+	Allocs      uint `json:"allocs"`
 }
 
 func matPrint(X mat.Matrix) {
@@ -185,7 +185,7 @@ func benchmarkAction(c *cli.Context) error {
 		b := BenchmarkResult{
 			DurationNS:  uint(result.NsPerOp()),
 			MemoryBytes: uint(result.AllocedBytesPerOp()),
-			Allocs:      uint64(result.AllocsPerOp()),
+			Allocs:      uint(result.AllocsPerOp()),
 		}
 		jsonBytes, err := json.Marshal(b)
 		if err != nil {
