@@ -3,6 +3,7 @@ package main
 import (
 	"ar90n/kmeaaaaans"
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -14,6 +15,12 @@ import (
 	"github.com/urfave/cli/v2"
 	"gonum.org/v1/gonum/mat"
 )
+
+type BenchmarkResult struct {
+	DurationNS  uint   `json:"duration_ns"`
+	MemoryBytes uint   `json:"memory_bytes"`
+	Allocs      uint64 `json:"allocs"`
+}
 
 func matPrint(X mat.Matrix) {
 	fa := mat.Formatted(X, mat.Prefix(""), mat.Squeeze())
@@ -155,6 +162,7 @@ func benchmarkAction(c *cli.Context) error {
 	maxIter := c.Uint("max-iter")
 	batchSize := c.Uint("batch-size")
 	delimiter := c.String("delimiter")
+	useJsonFormat := c.Bool("json")
 	initAlgorithm, err := kmeaaaaans.InitAlgorithmFrom(c.String("init-algorithm"))
 	if err != nil {
 		return err
@@ -172,8 +180,21 @@ func benchmarkAction(c *cli.Context) error {
 			kmeans.Fit(X)
 		}
 	})
-	fmt.Println(result)
 
+	if useJsonFormat {
+		b := BenchmarkResult{
+			DurationNS:  uint(result.NsPerOp()),
+			MemoryBytes: uint(result.AllocedBytesPerOp()),
+			Allocs:      uint64(result.AllocsPerOp()),
+		}
+		jsonBytes, err := json.Marshal(b)
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(jsonBytes))
+	} else {
+		fmt.Println(result, result.MemString())
+	}
 	return nil
 }
 
@@ -282,6 +303,10 @@ func main() {
 						Usage:       "delimiter",
 						Value:       ",",
 						DefaultText: ",",
+					},
+					&cli.BoolFlag{
+						Name:  "json",
+						Usage: "output in json format",
 					},
 				},
 			},
