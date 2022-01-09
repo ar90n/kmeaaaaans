@@ -1,8 +1,28 @@
 package kmeaaaaans
 
 import (
+	"fmt"
+
 	"gonum.org/v1/gonum/mat"
 )
+
+type UpdateAlgorithm int
+
+const (
+	Lloyd UpdateAlgorithm = iota + 1
+	MiniBatch
+)
+
+func UpdateAlgorithmFrom(str string) (UpdateAlgorithm, error) {
+	switch str {
+	case "lloyd":
+		return Lloyd, nil
+	case "mini-batch":
+		return MiniBatch, nil
+	default:
+		return 0, fmt.Errorf("invalid update algorithm: %s", str)
+	}
+}
 
 type Kmeans interface {
 	Fit(X *mat.Dense) TrainedKmeans
@@ -13,10 +33,13 @@ type TrainedKmeans interface {
 	Centroids() *mat.Dense
 }
 
-func NewMiniBatchKmeans(nClusters uint, batchSize uint) Kmeans {
+func NewMiniBatchKmeans(nClusters uint, tolerance float64, maxIterations uint, batchSize uint, initAlgorithm InitAlgorithm) Kmeans {
 	return &miniBatchKmeans{
-		nClusters: nClusters,
-		batchSize: batchSize,
+		tolerance:     tolerance,
+		maxIterations: maxIterations,
+		nClusters:     nClusters,
+		batchSize:     batchSize,
+		initAlgorithm: initAlgorithm,
 	}
 }
 

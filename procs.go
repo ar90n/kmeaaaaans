@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"sort"
 
 	"gonum.org/v1/gonum/mat"
 )
@@ -46,7 +47,8 @@ func calcKmeansPlusPlusInitialCentroids(X *mat.Dense, nClusters uint) *mat.Dense
 		for j := 0; j < int(nSamples); j++ {
 			minDinstance := math.MaxFloat64
 			for k := 0; k < i; k++ {
-				distance := calcL2Distance(X.RowView(j), centroids.RowView(k))
+				//distance := calcL2Distance(X.RowView(j), centroids.RowView(k))
+				distance := calcL2Distance(X.RawRowView(j), centroids.RawRowView(k))
 				minDinstance = math.Min(minDinstance, distance)
 			}
 			if j == 0 {
@@ -57,12 +59,8 @@ func calcKmeansPlusPlusInitialCentroids(X *mat.Dense, nClusters uint) *mat.Dense
 		}
 
 		r := accDistances[nSamples-1] * rand.Float64()
-		for j := 0; j < int(nSamples); j++ {
-			if r <= accDistances[j] {
-				centroids.SetRow(i, X.RawRowView(j))
-				break
-			}
-		}
+		j := sort.Search(int(nSamples), func(i int) bool { return accDistances[i] >= r })
+		centroids.SetRow(i, X.RawRowView(j))
 	}
 
 	return centroids
@@ -79,13 +77,13 @@ func calcInitialCentroids(X *mat.Dense, nClusters uint, initAlgorithm InitAlgori
 	}
 }
 
-func assignCluster(X *mat.Dense, centroids *mat.Dense, classes []uint, indices []uint, calcDistance func(X, Y mat.Vector) float64) {
+func assignCluster(X *mat.Dense, centroids *mat.Dense, classes []uint, indices []uint, calcDistance func(X, Y []float64) float64) {
 	nClusters, _ := centroids.Dims()
 	for _, i := range indices {
 		minDist := math.MaxFloat64
 		minClass := uint(0)
 		for j := 0; j < int(nClusters); j++ {
-			dist := calcDistance(X.RowView(int(i)), centroids.RowView(j))
+			dist := calcDistance(X.RawRowView(int(i)), centroids.RawRowView(j))
 			if dist < minDist {
 				minDist = dist
 				minClass = uint(j)
@@ -111,16 +109,26 @@ func updateCentroid(X *mat.Dense, centroids *mat.Dense, nSamplesInCluster []uint
 	nClusters, featDim := centroids.Dims()
 	for i := 0; i < int(nClusters); i++ {
 		for j := 0; j < featDim; j++ {
-			avgValue := centroids.At(i, j) / float64(nSamplesInCluster[i])
-			centroids.Set(i, j, avgValue)
+			if 0 < nSamplesInCluster[i] {
+				avgValue := centroids.At(i, j) / float64(nSamplesInCluster[i])
+				centroids.Set(i, j, avgValue)
+			}
 		}
 	}
 }
 
-func calcL2Distance(X, Y mat.Vector) float64 {
-	diff := mat.NewVecDense(X.Len(), nil)
-	diff.SubVec(X, Y)
-	return mat.Norm(diff, 2)
+//func calcL2Distance(X, Y mat.Vector) float64 {
+//	diff := mat.NewVecDense(X.Len(), nil)
+//	diff.SubVec(X, Y)
+//	return mat.Norm(diff, 2)
+//}
+func calcL2Distance(X, Y []float64) float64 {
+	acc := 0.0
+	for i := 0; i < len(X); i++ {
+		diff := X[i] - Y[i]
+		acc += diff * diff
+	}
+	return math.Sqrt(acc)
 }
 
 func calcError(X, Y *mat.Dense) float64 {
