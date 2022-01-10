@@ -43,7 +43,7 @@ def csv_io_context(input_path: Path, output_path: Path, delimiter: str):
 
 
 class Algorithm(str, Enum):
-    vanila = "vanila"
+    lloyd = "lloyd"
     minibatch = "minibatch"
 
 
@@ -51,12 +51,12 @@ def main(
     n_clusters: int,
     input_path: Path,
     output_path: Path,
-    algorithm: Algorithm = Algorithm.vanila,
+    algorithm: Algorithm = Algorithm.lloyd,
     delimiter: str = ",",
     batch_size: Optional[int] = None,
 ):
     KmeansClass = {
-        Algorithm.vanila: KMeans,
+        Algorithm.lloyd: KMeans,
         Algorithm.minibatch: MiniBatchKMeans,
     }[algorithm]
 
