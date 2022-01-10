@@ -57,19 +57,12 @@ func (k *miniBatchKmeans) Fit(X *mat.Dense) (TrainedKmeans, error) {
 	minInertia := math.MaxFloat64
 	minRuns := uint(0)
 	allIndices := makeSequence(uint(nSamples))
-	getBegAndEnd := func(i int, nIndex int, batchSize uint) (int, int) {
-		end := (i + 1) * int(batchSize)
-		if nIndex < end {
-			end = minInt(nIndex, int(batchSize))
-		}
-		beg := maxInt(0, end-int(batchSize))
-		return beg, end
-	}
 	for i := 0; i < int(k.maxIterations) && k.tolerance < calcError(centroids, nextCentroids); i++ {
 		centroids, nextCentroids = nextCentroids, centroids
-		nextCentroids.Zero()
 
-		beg, end := getBegAndEnd(i, len(allIndices), k.batchSize)
+		maxIndex := uint(nSamples) / k.batchSize
+		beg := (uint(i) % maxIndex) * k.batchSize
+		end := beg + k.batchSize
 		if beg == 0 {
 			rand.Shuffle(len(allIndices), func(i, j int) { allIndices[i], allIndices[j] = allIndices[j], allIndices[i] })
 		}
