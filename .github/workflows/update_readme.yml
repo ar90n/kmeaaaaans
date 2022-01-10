@@ -27,6 +27,7 @@ jobs:
         run: |
           ls
           cd benchmark
+          poetry install
           make report.md
       - name: Create README.md
         run: |
