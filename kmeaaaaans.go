@@ -33,18 +33,19 @@ type TrainedKmeans interface {
 	Centroids() *mat.Dense
 }
 
-func NewMiniBatchKmeans(nClusters uint, tolerance float64, maxIterations uint, batchSize uint, initAlgorithm InitAlgorithm) Kmeans {
+func NewMiniBatchKmeans(nClusters uint, tolerance float64, maxIterations uint, maxNoImprobe uint, batchSize uint, initAlgorithm InitAlgorithm) Kmeans {
 	return &miniBatchKmeans{
 		tolerance:     tolerance,
 		maxIterations: maxIterations,
+		maxNoImprobe:  maxNoImprobe,
 		nClusters:     nClusters,
 		batchSize:     batchSize,
 		initAlgorithm: initAlgorithm,
 	}
 }
 
-func NewVanilaKmeans(nClusters uint, tolerance float64, maxIterations uint, chunkSize uint, initAlgorithm InitAlgorithm) Kmeans {
-	return &vanilaKmeans{
+func NewLloydKmeans(nClusters uint, tolerance float64, maxIterations uint, chunkSize uint, initAlgorithm InitAlgorithm) Kmeans {
+	return &lloydKmeans{
 		nClusters:     nClusters,
 		tolerance:     tolerance,
 		maxIterations: maxIterations,

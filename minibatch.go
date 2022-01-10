@@ -14,19 +14,12 @@ type miniBatchKmeans struct {
 	nClusters     uint
 	tolerance     float64
 	maxIterations uint
+	maxNoImprobe  uint
 	batchSize     uint
 	initAlgorithm InitAlgorithm
 }
 
 var _ Kmeans = (*miniBatchKmeans)(nil)
-
-func makeBatchIndice(nSamples, batchSize uint) []uint {
-	batchIndice := make([]uint, batchSize)
-	for i := uint(0); i < batchSize; i++ {
-		batchIndice[i] = uint(rand.Intn(int(nSamples)))
-	}
-	return batchIndice
-}
 
 func updateMiniBatchCentroids(nextCentroids *mat.Dense, centroids *mat.Dense, nSamplesInCluster []uint, accNSamplesInCluster []uint) {
 	for i := 0; i < len(nSamplesInCluster); i++ {
@@ -60,14 +53,28 @@ func (k *miniBatchKmeans) Fit(X *mat.Dense) (TrainedKmeans, error) {
 	classes := make([]uint, X.RawMatrix().Rows)
 	accNSamplesInCluster := make([]uint, k.nClusters)
 	nSamplesInCluster := make([]uint, k.nClusters)
+	chunkSize := (k.batchSize + uint(runtime.NumCPU()) - 1) / uint(runtime.NumCPU())
 	minInertia := math.MaxFloat64
-	minRuns := 0
+	minRuns := uint(0)
+	allIndices := makeSequence(uint(nSamples))
+	getBegAndEnd := func(i int, nIndex int, batchSize uint) (int, int) {
+		end := (i + 1) * int(batchSize)
+		if nIndex < end {
+			end = minInt(nIndex, int(batchSize))
+		}
+		beg := maxInt(0, end-int(batchSize))
+		return beg, end
+	}
 	for i := 0; i < int(k.maxIterations) && k.tolerance < calcError(centroids, nextCentroids); i++ {
 		centroids, nextCentroids = nextCentroids, centroids
 		nextCentroids.Zero()
 
-		indices := makeBatchIndice(uint(nSamples), k.batchSize)
-		chunks := makeChunks(indices, 256)
+		beg, end := getBegAndEnd(i, len(allIndices), k.batchSize)
+		if beg == 0 {
+			rand.Shuffle(len(allIndices), func(i, j int) { allIndices[i], allIndices[j] = allIndices[j], allIndices[i] })
+		}
+		indices := allIndices[beg:end]
+		chunks := makeChunks(indices, chunkSize)
 
 		inertia := 0.0
 		var wg sync.WaitGroup
@@ -92,7 +99,7 @@ func (k *miniBatchKmeans) Fit(X *mat.Dense) (TrainedKmeans, error) {
 		} else {
 			minRuns++
 		}
-		if minRuns > 10 {
+		if k.maxNoImprobe < minRuns {
 			break
 		}
 

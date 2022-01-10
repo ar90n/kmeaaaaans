@@ -8,7 +8,7 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-type vanilaKmeans struct {
+type lloydKmeans struct {
 	nClusters     uint
 	tolerance     float64
 	maxIterations uint
@@ -16,7 +16,7 @@ type vanilaKmeans struct {
 	initAlgorithm InitAlgorithm
 }
 
-var _ Kmeans = (*vanilaKmeans)(nil)
+var _ Kmeans = (*lloydKmeans)(nil)
 
 func updateLloydCentroids(centroids, nextCentroids *mat.Dense, nSamplesInCluster []uint) {
 	for i := 0; i < len(nSamplesInCluster); i++ {
@@ -32,7 +32,7 @@ func updateLloydCentroids(centroids, nextCentroids *mat.Dense, nSamplesInCluster
 	}
 }
 
-func (k *vanilaKmeans) Fit(X *mat.Dense) (TrainedKmeans, error) {
+func (k *lloydKmeans) Fit(X *mat.Dense) (TrainedKmeans, error) {
 	nSamples, featDim := X.Dims()
 	nextCentroids := calcInitialCentroids(X, k.nClusters, k.initAlgorithm)
 	centroids := mat.NewDense(int(k.nClusters), int(featDim), nil)

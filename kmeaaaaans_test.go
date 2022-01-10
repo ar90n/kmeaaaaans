@@ -9,20 +9,26 @@ import (
 
 func TestClustering(t *testing.T) {
 	for _, kmeans := range []Kmeans{
-		NewVanilaKmeans(2, 1e-4, 10, 1024, KmeansPlusPlus),
-		NewMiniBatchKmeans(2, 1e-4, 10, 1024, KmeansPlusPlus),
+		NewLloydKmeans(2, 1e-8, 10, 1024, KmeansPlusPlus),
+		NewLloydKmeans(2, 1e-8, 10, 2, KmeansPlusPlus),
+		NewMiniBatchKmeans(2, 1e-8, 10, 10, 1024, KmeansPlusPlus),
+		NewMiniBatchKmeans(2, 1e-8, 10, 10, 4, KmeansPlusPlus),
 	} {
 		X := mat.NewDense(8, 2, []float64{1, 1, 1, 0, 0, 1, 0, 0, 5, 5, 5, 6, 6, 5, 6, 6})
-		trained := kmeans.Fit(X)
+		trained, _ := kmeans.Fit(X)
 
 		centroids := trained.Centroids()
-		if !mat.EqualApprox(centroids, mat.NewDense(2, 2, []float64{0.5, 0.5, 5.5, 5.5}), 1e-10) {
+		expect0 := mat.NewDense(2, 2, []float64{0.5, 0.5, 5.5, 5.5})
+		expect1 := mat.NewDense(2, 2, []float64{5.5, 5.5, 0.5, 0.5})
+		if !mat.EqualApprox(centroids, expect0, 1e-4) && !mat.EqualApprox(centroids, expect1, 1e-1) {
 			t.Errorf("trained.Centroids() = %v, want %v", centroids, mat.NewDense(2, 2, []float64{0.5, 0.5, 5.5, 5.5}))
 		}
 
 		classes := trained.Predict(X)
-		if reflect.DeepEqual(classes, []uint{0, 0, 0, 0, 0, 1, 1, 1}) {
-			t.Errorf("trained.Predict(X) = %v, want %v", classes, []uint{0, 0, 0, 0, 0, 1, 1, 1})
+		expect2 := []uint{0, 0, 0, 0, 1, 1, 1, 1}
+		expect3 := []uint{1, 1, 1, 1, 0, 0, 0, 0}
+		if !reflect.DeepEqual(classes, expect2) && !reflect.DeepEqual(classes, expect3) {
+			t.Errorf("trained.Predict(X) = %v, want %v", classes, []uint{0, 0, 0, 0, 1, 1, 1, 1})
 		}
 	}
 }

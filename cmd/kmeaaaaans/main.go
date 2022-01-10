@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/pkg/profile"
 	"github.com/urfave/cli/v2"
 	"gonum.org/v1/gonum/mat"
 )
@@ -101,21 +102,35 @@ func trainAction(c *cli.Context) error {
 	nClusters := c.Uint("clusters")
 	tolerance := c.Float64("tolerance")
 	maxIter := c.Uint("max-iter")
+	maxNoImprove := c.Uint("max-no-improve")
 	batchSize := c.Uint("batch-size")
 	delimiter := c.String("delimiter")
 	initAlgorithm, err := kmeaaaaans.InitAlgorithmFrom(c.String("init-algorithm"))
 	if err != nil {
 		return err
 	}
+	updateAlgorithm, err := kmeaaaaans.UpdateAlgorithmFrom(c.String("update-algorithm"))
+	if err != nil {
+		return err
+	}
 
-	kmeans := kmeaaaaans.NewVanilaKmeans(nClusters, tolerance, maxIter, batchSize, initAlgorithm)
+	var kmeans kmeaaaaans.Kmeans
+	switch updateAlgorithm {
+	case kmeaaaaans.Lloyd:
+		kmeans = kmeaaaaans.NewLloydKmeans(nClusters, tolerance, maxIter, batchSize, initAlgorithm)
+	case kmeaaaaans.MiniBatch:
+		kmeans = kmeaaaaans.NewMiniBatchKmeans(nClusters, tolerance, maxIter, maxNoImprove, batchSize, initAlgorithm)
+	}
 
 	X, err := readFeatures(os.Stdin, delimiter)
 	if err != nil {
 		return err
 	}
 
-	trained := kmeans.Fit(X)
+	trained, err := kmeans.Fit(X)
+	if err != nil {
+		return err
+	}
 	centroids := trained.Centroids()
 	if err := dumpAsSeparatedFloat64(os.Stdout, centroids, delimiter); err != nil {
 		return err
@@ -157,9 +172,12 @@ func predictAction(c *cli.Context) error {
 }
 
 func benchmarkAction(c *cli.Context) error {
+	defer profile.Start(profile.ProfilePath(".")).Stop()
+
 	nClusters := c.Uint("clusters")
 	tolerance := c.Float64("tolerance")
 	maxIter := c.Uint("max-iter")
+	maxNoImprove := c.Uint("max-no-improve")
 	batchSize := c.Uint("batch-size")
 	delimiter := c.String("delimiter")
 	useJsonFormat := c.Bool("json")
@@ -167,8 +185,18 @@ func benchmarkAction(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	updateAlgorithm, err := kmeaaaaans.UpdateAlgorithmFrom(c.String("update-algorithm"))
+	if err != nil {
+		return err
+	}
 
-	kmeans := kmeaaaaans.NewVanilaKmeans(nClusters, tolerance, maxIter, batchSize, initAlgorithm)
+	var kmeans kmeaaaaans.Kmeans
+	switch updateAlgorithm {
+	case kmeaaaaans.Lloyd:
+		kmeans = kmeaaaaans.NewLloydKmeans(nClusters, tolerance, maxIter, batchSize, initAlgorithm)
+	case kmeaaaaans.MiniBatch:
+		kmeans = kmeaaaaans.NewMiniBatchKmeans(nClusters, tolerance, maxIter, maxNoImprove, batchSize, initAlgorithm)
+	}
 	X, err := readFeatures(os.Stdin, delimiter)
 	if err != nil {
 		return err
@@ -222,6 +250,12 @@ func main() {
 						Value:       300,
 						DefaultText: "300",
 					},
+					&cli.UintFlag{
+						Name:        "max-no-improve",
+						Usage:       "max number of no improvement",
+						Value:       10,
+						DefaultText: "10",
+					},
 					&cli.Float64Flag{
 						Name:        "tolerance",
 						Usage:       "tolerance",
@@ -239,6 +273,12 @@ func main() {
 						Usage:       "initialization algorithm",
 						Value:       "kmeans++",
 						DefaultText: "kmeans++",
+					},
+					&cli.StringFlag{
+						Name:        "update-algorithm",
+						Usage:       "update algorithm",
+						Value:       "lloyd",
+						DefaultText: "lloyd",
 					},
 					&cli.StringFlag{
 						Name:        "delimiter",
@@ -280,6 +320,12 @@ func main() {
 						Value:       300,
 						DefaultText: "300",
 					},
+					&cli.UintFlag{
+						Name:        "max-no-improve",
+						Usage:       "max number of no improvement",
+						Value:       10,
+						DefaultText: "10",
+					},
 					&cli.Float64Flag{
 						Name:        "tolerance",
 						Usage:       "tolerance",
@@ -297,6 +343,12 @@ func main() {
 						Usage:       "initialization algorithm",
 						Value:       "kmeans++",
 						DefaultText: "kmeans++",
+					},
+					&cli.StringFlag{
+						Name:        "update-algorithm",
+						Usage:       "update algorithm",
+						Value:       "lloyd",
+						DefaultText: "lloyd",
 					},
 					&cli.StringFlag{
 						Name:        "delimiter",

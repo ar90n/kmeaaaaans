@@ -167,6 +167,27 @@ func minUint(a, b uint) uint {
 	return b
 }
 
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func maxUint(a, b uint) uint {
+	if a < b {
+		return b
+	}
+	return a
+}
+
+func maxInt(a, b int) int {
+	if a < b {
+		return b
+	}
+	return a
+}
+
 func makeChunks(seq []uint, chunkSize uint) [][]uint {
 	chunks := make([][]uint, 0)
 	for i := uint(0); i < uint(len(seq)); i += chunkSize {
