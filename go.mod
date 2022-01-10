@@ -1,4 +1,4 @@
-module ar90n/kmeaaaaans
+module github.com/ar90n/kmeaaaaans
 
 go 1.17
 

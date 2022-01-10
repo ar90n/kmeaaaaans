@@ -1,7 +1,6 @@
 package main
 
 import (
-	"ar90n/kmeaaaaans"
 	"bufio"
 	"encoding/json"
 	"fmt"
@@ -12,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ar90n/kmeaaaaans"
 	"github.com/pkg/profile"
 	"github.com/urfave/cli/v2"
 	"gonum.org/v1/gonum/mat"
