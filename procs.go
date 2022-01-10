@@ -47,7 +47,6 @@ func calcKmeansPlusPlusInitialCentroids(X *mat.Dense, nClusters uint) *mat.Dense
 		for j := 0; j < int(nSamples); j++ {
 			minDinstance := math.MaxFloat64
 			for k := 0; k < i; k++ {
-				//distance := calcL2Distance(X.RowView(j), centroids.RowView(k))
 				distance := calcL2Distance(X.RawRowView(j), centroids.RawRowView(k))
 				minDinstance = math.Min(minDinstance, distance)
 			}
@@ -78,46 +77,38 @@ func calcInitialCentroids(X *mat.Dense, nClusters uint, initAlgorithm InitAlgori
 }
 
 func assignCluster(X *mat.Dense, centroids *mat.Dense, classes []uint, indices []uint, calcDistance func(X, Y []float64) float64) float64 {
-	nClusters, featDim := centroids.Dims()
+	nClusters, _ := centroids.Dims()
 	inertia := 0.0
 	for _, i := range indices {
 		minDist := math.MaxFloat64
 		minClass := uint(0)
-		bc := make([]float64, featDim)
 		for j := 0; j < int(nClusters); j++ {
 			dist := calcDistance(X.RawRowView(int(i)), centroids.RawRowView(j))
 			if dist < minDist {
 				minDist = dist
 				minClass = uint(j)
-				for q := 0; q < featDim; q++ {
-					bc[q] = centroids.At(j, q)
-				}
 			}
 		}
 		inertia += minDist
-		//fmt.Printf("   %f %f ", inertia, minDist)
-		//fmt.Print(bc)
-		//fmt.Print(" ")
-		//fmt.Println(X.RawRowView(int(i)))
 		classes[i] = minClass
-		//if q < 3 {
-		//	fmt.Println(i, inertia, minDist)
-		//}
 	}
-	//fmt.Println("--------------------")
 
 	return inertia
 }
 
-func accumulateSamplesInCluster(X *mat.Dense, centroids *mat.Dense, nSamplesInCluster []uint, classes []uint, indices []uint) {
+func accumulateSamples(X *mat.Dense, nextCentroids *mat.Dense, nSamplesInCluster []uint, classes []uint, indices []uint) {
+	for i := 0; i < len(nSamplesInCluster); i++ {
+		nSamplesInCluster[i] = 0
+	}
+
 	for _, i := range indices {
-		feat := X.RowView(int(i))
 		cluster := int(classes[i])
-		for j := 0; j < feat.Len(); j++ {
-			accValue := centroids.At(cluster, j) + feat.AtVec(j)
-			centroids.Set(cluster, j, accValue)
-		}
 		nSamplesInCluster[cluster]++
+		centroidData := nextCentroids.RawRowView(cluster)
+		featData := X.RawRowView(int(i))
+		for j := 0; j < len(featData); j++ {
+			centroidData[j] += featData[j]
+		}
 	}
 }
 
@@ -133,16 +124,10 @@ func updateCentroid(X *mat.Dense, centroids *mat.Dense, nSamplesInCluster []uint
 	}
 }
 
-//func calcL2Distance(X, Y mat.Vector) float64 {
-//	diff := mat.NewVecDense(X.Len(), nil)
-//	diff.SubVec(X, Y)
-//	return mat.Norm(diff, 2)
-//}
 func calcL2Distance(X, Y []float64) float64 {
 	acc := 0.0
 	i := 0
 	for ; i < len(X)%4; i++ {
-		//	for ; i < len(X); i++ {
 		diff := X[i] - Y[i]
 		acc += diff * diff
 	}
@@ -159,9 +144,6 @@ func calcL2Distance(X, Y []float64) float64 {
 }
 
 func calcError(X, Y *mat.Dense) float64 {
-	//	diff := mat.NewDense(X.RawMatrix().Rows, X.RawMatrix().Cols, nil)
-	//	diff.Sub(X, Y)
-	//	return mat.Norm(diff, 2) / mat.Norm(X, 2)
 	return calcL2Distance(X.RawMatrix().Data, Y.RawMatrix().Data) / mat.Norm(X, 2)
 }
 

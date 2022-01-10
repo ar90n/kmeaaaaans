@@ -25,7 +25,7 @@ func UpdateAlgorithmFrom(str string) (UpdateAlgorithm, error) {
 }
 
 type Kmeans interface {
-	Fit(X *mat.Dense) TrainedKmeans
+	Fit(X *mat.Dense) (TrainedKmeans, error)
 }
 
 type TrainedKmeans interface {
