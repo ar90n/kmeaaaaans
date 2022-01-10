@@ -7,8 +7,9 @@ on:
 name: Create Release
 
 jobs:
-  build:
+  create_readme:
     name: Update README.md
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -23,19 +24,19 @@ jobs:
       - name: Run image
         uses: abatilo/actions-poetry@v2.0.0
       - name: Run benchmark
-        run:|
+        run: |
           ls
           cd benchmark
           make report.md
       - name: Create README.md
-        run:|
+        run: |
           ls
           ls benchmark
           cat README.md.template | sed -e "s^@@BENCHMARK@@^$(cat ./benchmark/report.md | awk '{printf "%s\\n", $0}')^g" > README.md
       - name: check
         run: ls
       - name: Push README.md
-        run:|
+        run: |
           git add README.md
           git commit -m 'update README.md'
           git push origin main
