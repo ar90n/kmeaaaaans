@@ -48,9 +48,3 @@ jobs:
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Push README.md
-        run: |
-          git add README.md
-          git commit -m 'update README.md'
-          git push origin main
