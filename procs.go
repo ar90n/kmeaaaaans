@@ -97,6 +97,7 @@ func assignCluster(X *mat.Dense, centroids *mat.Dense, classes []uint, indices [
 }
 
 func accumulateSamples(X *mat.Dense, nextCentroids *mat.Dense, nSamplesInCluster []uint, classes []uint, indices []uint) {
+	nextCentroids.Zero()
 	for i := 0; i < len(nSamplesInCluster); i++ {
 		nSamplesInCluster[i] = 0
 	}
@@ -108,18 +109,6 @@ func accumulateSamples(X *mat.Dense, nextCentroids *mat.Dense, nSamplesInCluster
 		featData := X.RawRowView(int(i))
 		for j := 0; j < len(featData); j++ {
 			centroidData[j] += featData[j]
-		}
-	}
-}
-
-func updateCentroid(X *mat.Dense, centroids *mat.Dense, nSamplesInCluster []uint) {
-	nClusters, featDim := centroids.Dims()
-	for i := 0; i < int(nClusters); i++ {
-		for j := 0; j < featDim; j++ {
-			if 0 < nSamplesInCluster[i] {
-				avgValue := centroids.At(i, j) / float64(nSamplesInCluster[i])
-				centroids.Set(i, j, avgValue)
-			}
 		}
 	}
 }

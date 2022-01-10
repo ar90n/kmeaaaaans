@@ -102,7 +102,7 @@ def make_benchmark(benchmarks):
 def main(benchmark_json_path: Path):
     benchmarks = json.loads(benchmark_json_path.read_text())
 
-    report = ["##Benchmark"]
+    report = ["## Benchmark"]
     report.append(make_env())
     report.append(make_dataset())
     report.append(make_benchmark(benchmarks))

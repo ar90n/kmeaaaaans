@@ -1,0 +1,50 @@
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+name: Update README.md
+
+jobs:
+  create_readme:
+    name: Update README.md
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '^1.13.1'
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Run image
+        uses: abatilo/actions-poetry@v2.0.0
+      - name: Run benchmark
+        run: |
+          ls
+          cd benchmark
+          poetry install
+          make report.md
+      - name: Create README.md
+        run: |
+          ls
+          ls benchmark
+          cat README.md.template | sed -e "s^@@BENCHMARK@@^$(cat ./benchmark/report.md | awk '{printf "%s\\n", $0}')^g" > README.md
+      - name: check
+        run: ls
+      - name: Push README.md
+        run: |
+          git remote set-url origin https://github-actions:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}
+          git config --global user.name "${GITHUB_ACTOR}"
+          git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          if (git diff --shortstat | grep '[0-9]'); then \
+            git add README.md; \
+            git commit -m "update README.md by github-actions"; \
+            git push origin HEAD:${GITHUB_REF}; \
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -50,7 +50,6 @@ func (k *lloydKmeans) Fit(X *mat.Dense) (TrainedKmeans, error) {
 	nSamplesInCluster := make([]uint, k.nClusters)
 	for i := 0; i < int(k.maxIterations) && k.tolerance < calcError(centroids, nextCentroids); i++ {
 		centroids, nextCentroids = nextCentroids, centroids
-		nextCentroids.Zero()
 
 		var wg sync.WaitGroup
 		for _, chunk := range chunks {
