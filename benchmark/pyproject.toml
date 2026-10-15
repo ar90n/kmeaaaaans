@@ -8,7 +8,7 @@ authors = ["Masahiro Wada <argon.argon.argon@gmail.com>"]
 python = "^3.8"
 scikit-learn = "^1.0.2"
 typer = "^0.6.0"
-py-cpuinfo = "^8.0.0"
+py-cpuinfo = "^9.0.0"
 psutil = "^5.9.0"
 
 [tool.poetry.dev-dependencies]
